@@ -86,7 +86,7 @@ def main():
             iter_count = 0
             while True:
                 iter_count += 1
-                if iter_count >= MAX_ITERATIONS:
+                if iter_count > MAX_ITERATIONS:
                     print("[info] 本轮调用失败，回到输入")
                     break
                 message = chat(client, history)
@@ -106,8 +106,22 @@ def main():
                         history.append({"role": "tool", "tool_call_id": tc.id, "content": "[不支持的工具调用类型]"})
                         continue
                     print(f"[tool] {tc.function.name} {tc.function.arguments}")
-                    retult = IMPLEMENTATIONS[tc.function.name](**json.loads(tc.function.arguments))
-                    history.append({"role":"tool", "tool_call_id":tc.id, "content":str(retult)})
+                    # retult = IMPLEMENTATIONS[tc.function.name](**json.loads(tc.function.arguments)) # 有bug
+                    if tc.function.name not in IMPLEMENTATIONS:
+                        result_str = f"工具{tc.function.name} 不存在。"
+                    else:
+                        try:
+                            # json.loads 解析字符串（json.load 只接受文件对象，末尾 s = string）
+                            # 模型输出是动态 JSON，此处是信任边界；运行期安全由下方 try/except 保证，
+                            # 静态类型定点豁免（不向内传播 Any/Unknown）
+                            args = json.loads(tc.function.arguments)  # pyright: ignore[reportAny]
+                            result_str = str(IMPLEMENTATIONS[tc.function.name](**args))  # pyright: ignore[reportAny]
+                        except json.JSONDecodeError:
+                            result_str = "参数不是合法Json，重新生成"
+                        except Exception as e:
+                            # 第三层兜底：工具函数内部任何异常都转文本，不让 REPL 崩
+                            result_str = f"工具执行出错：{e!r}"
+                    history.append({"role":"tool", "tool_call_id":tc.id, "content":str(result_str)})
     except KeyboardInterrupt:
         print("[info] 已退出")
 
