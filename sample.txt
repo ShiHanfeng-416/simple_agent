@@ -1,0 +1,9 @@
+Hermes Agent 学习项目 sample 文件
+This is a sample file for the simple_agent project.
+
+项目名：simple_agent（2026-10-03）
+目标：手写一个约 200 行的最小 coding agent。
+核心概念：agent loop、tool calling、消息回填（role="tool"）、max iterations。
+
+趣味事实：The agent loop is just "call the model, run tools, feed results back, repeat".
+附注：文件里故意混了中英文和长短行，用来测试 read_file 的截断逻辑。
