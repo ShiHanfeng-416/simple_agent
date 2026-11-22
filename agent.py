@@ -98,7 +98,8 @@ def main():
                     # content 类型是 str | None（带 tool_calls 时为 None），or "" 收敛为 str
                     history.append({"role": "assistant", "content": message.content or ""})
                     break                                # 只退内层循环，回到 input()
-                history.append(cast(ChatCompletionAssistantMessageParam, cast(object, message.model_dump())))  # 带 tool_calls 的消息转 dict 进历史（坑7.2：必须先于 tool 消息）
+                history.append(cast(ChatCompletionAssistantMessageParam, cast(object, message.model_dump())))  
+                # 带 tool_calls 的消息转 dict 进历史（坑7.2：必须先于 tool 消息）
                 for tc in message.tool_calls:
                     # 新版 SDK 的 tool_calls 可能含 custom 等类型，本项目只支持 function；
                     # 协议要求每个 tool_call_id 都必须有 tool 消息应答，否则 API 400
@@ -108,7 +109,8 @@ def main():
                     print(f"[tool] {tc.function.name} {tc.function.arguments}")
                     # retult = IMPLEMENTATIONS[tc.function.name](**json.loads(tc.function.arguments)) # 有bug
                     if tc.function.name not in IMPLEMENTATIONS:
-                        result_str = f"工具{tc.function.name} 不存在。"
+                        # 附上可用清单，给模型自我纠正的线索，省一轮"猜错→再猜"的迭代
+                        result_str = f"工具{tc.function.name} 不存在。可用：{'/'.join(IMPLEMENTATIONS)}"
                     else:
                         try:
                             # json.loads 解析字符串（json.load 只接受文件对象，末尾 s = string）
